@@ -2,16 +2,19 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from PE.simulation import fetch_data, monte_carlo, calculate_kpis
-from PE.ai_logic import analyze_market_sentiment
+import time
+from simulation import fetch_data, monte_carlo, calculate_kpis
+from ai_logic import analyze_market_sentiment
 
 st.set_page_config(page_title="Portfolio Evaluator", layout="wide")
+
 st.title("AI Powered Stress Test For Your Portfolio")
 
 with st.sidebar:
     st.header("Configure")
     past_yrs = st.slider("Past Years of Data:", min_value=1, max_value=30, value=5)
     investment_amount = st.number_input("Investment Amount ($):", min_value=100)
+    investment_period = st.number_input("Investment Period (Days):", min_value=30, max_value=252*5, placeholder="e.g., 252 for 1 year")
     tickers_input = st.text_input("Stocks", placeholder="e.g., AAPL,MSFT,GOOGL")
     tickers = [t.strip() for t in tickers_input.split(",")]
     weights_input = st.text_input("Invested Weights (in same order as stocks)","0.5", placeholder="e.g., 0.4,0.4,0.2")
@@ -25,19 +28,27 @@ with st.sidebar:
         total_weight = sum(weights)
         weights = [w / total_weight for w in weights]
 
-    st.header("AI Crash Test")
-    news = st.text_area("Write a Market Headline:", "The Federal Reserve warns of rising inflation risks.")
+    st.header("AI driven News Analysis")
+    news = st.text_area("Write a Market Headline:", placeholder="The Federal Reserve warns of rising inflation risks.")
     if st.button("Run AI Analysis"):
         with st.spinner("Consulting Vertex AI..."):
             crash_prob = analyze_market_sentiment(news)
-            st.metric("AI Risk Probability", f"{crash_prob*100:.2f}%")
+            st.metric("Risk Probability", f"{crash_prob*100:.2f}%", help="Estimated probability of a market crash by AI based on the news headline.")
+            if crash_prob == 0.0:
+                st.metric("AI Risk Level", "No Risk", help="No significant financial risk detected or unrelated news provided.")
+            elif 0.0< crash_prob <=0.025:
+                st.metric("AI Risk Level", "Moderate Risk", help="Moderate financial risk detected.")
+            elif crash_prob >0.025 and crash_prob <0.05:
+                st.metric("AI Risk Level", "High Risk", help="High financial risk detected.")
+            elif crash_prob==0.05:
+                st.metric("AI Risk Level", "Severe Risk", help="Extreme financial risk detected.")
     else:
         crash_prob=0.0
     run_btn = st.button("Analyze Risk & Run")    
     if run_btn:
         with st.spinner("Running Monte Carlo Simulation..."):
             mu, cov = fetch_data(tickers, period=f"{past_yrs}y")
-            min, max, sim_data = monte_carlo(mu, cov, weights, investment_amount, crash_prob=crash_prob)
+            min, max, sim_data = monte_carlo(mu, cov, weights, investment_amount, investment_period ,crash_prob=crash_prob)
             exp_val, exp_ret, var, cvar, prob_success = calculate_kpis(sim_data, investment_amount)
             st.success("Done!")
 
@@ -53,7 +64,7 @@ if run_btn:
          )
     with col2:
         st.metric(
-            label="worst Case",
+            label="Worst Case",
             value=f"${min[-1]:,.2f}",
             delta="Minimum Value",
             )
@@ -69,7 +80,7 @@ if run_btn:
                 label="Value at Risk (95%)", 
                 value=f"${var:,.0f}", 
                 delta="-Risk", 
-                delta_color="inverse",
+                delta_color="red",
                 help="The maximum loss you might expect with 95% confidence."
             )
 
@@ -78,7 +89,7 @@ if run_btn:
                 label="CVaR (Worst Case)", 
                 value=f"${cvar:,.0f}", 
                 delta="-Severe Risk", 
-                delta_color="inverse",
+                delta_color="red",
                 help="The average loss in the worst 5% of scenarios (Market Crash)."
             )
 

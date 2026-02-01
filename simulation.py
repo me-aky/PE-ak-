@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import yfinance as yf 
+
 def fetch_data(tickers, period="5y"):
 
     # Force 'Adj Close' to appear by setting auto_adjust=False
@@ -17,7 +18,7 @@ def fetch_data(tickers, period="5y"):
 
     return mean_returns , cov_matrix
 
-def monte_carlo(mean_returns, cov_matrix, weights,investment_amount ,num_sims=1000, time_horizon=252, crash_prob=0.0):
+def monte_carlo(mean_returns, cov_matrix, weights,investment_amount, time_horizon ,num_sims=1000, crash_prob=0.0):
 
     # Cholesky Decomposition
     L=np.linalg.cholesky(cov_matrix)
