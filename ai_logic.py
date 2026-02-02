@@ -2,7 +2,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 
 #fill project id while deploying
-vertexai.init(project='h117013', location="us-central1")
+vertexai.init(project="h117013", location="us-central1")
 
 def analyze_market_sentiment(news_headline):
     model = GenerativeModel("gemini-2.5-pro")
