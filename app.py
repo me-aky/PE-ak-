@@ -15,32 +15,34 @@ lookback_period = st.selectbox(
         )
 
 refresh_btn = True
-while refresh_btn :
-    with dashboard_placeholder.container():
+with st.spinner("Loading Gold Price Data..."):
         # 1. Fetch Data
-        df = get_gold_data(period=lookback_period, interval="90m" if lookback_period == "1mo" else "15m" if lookback_period == "5d" else "1m")
+    df = get_gold_data(period=lookback_period, interval="90m" if lookback_period == "1mo" else "15m" if lookback_period == "5d" else "1m")
         
-        if df is not None and not df.empty:
-            current_price, change, pct_change, last_time = process_data(df)
+    if df is not None and not df.empty:
+        current_price, change, pct_change, last_time = process_data(df)
 
             # Convert timezone for display (optional, defaulting to UTC or Local)
             # data from yfinance is usually UTC.
-            last_time_str = last_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+        last_time_str = last_time.strftime('%Y-%m-%d %H:%M:%S %Z')
 
             # 2. Display Metrics
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            sub_col1, sub_col2, sub_col3 = st.columns(3)
+
+            with sub_col1:
                 st.metric(
                     label="Gold Price (USD)", 
                     value=f"${current_price:,.2f}", 
                     delta=f"{change:+.2f} ({pct_change:+.2f}%)"
                 )
             
-            with col2:
+            with sub_col2:
                 st.info(f"Last Update: {last_time_str}")
                 
-            with col3:
+            with sub_col3:
                 # Market Status Logic
                 # Rough logic: Market usually closed weekends (Sat/Sun)
                 # This is a visual helper, not strict trading logic
@@ -74,13 +76,15 @@ while refresh_btn :
             
             # Show graph
             st.plotly_chart(fig, use_container_width=True,key=f"gold_plot_{time.time()}")
-            
-        else:
-            st.error("No data available. The API might be down or rate limited.")
+        with col2:
+            st.markdown("### 📈 Gold Price Analysis")        
+    else:
+        st.error("No data available. The API might be down or rate limited.")
 
     # Sleep before the next update
-    time.sleep(90)  # Sleep for 90 seconds (1.5 minutes)
+    time.sleep(60)  # Sleep for 90 seconds (1.5 minutes)
     refresh_btn = False
+
 refresh_btn = st.button("Refresh Data Now", key="refresh_data_button_1")
 st.set_page_config(page_title="Portfolio Evaluator", layout="wide")
 
